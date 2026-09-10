@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitor Ambiental</title>
+
+  <!-- ============================================================
+       FUENTE: Outfit (Google Fonts)
+       Tipografía principal para números y títulos
+       ============================================================ -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- ============================================================
+       CSS: Todos los estilos visuales del monitor
+       ============================================================ -->
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       CANVAS DE FONDO
+       Aurora boreal y partículas — animados por js/fondo.js
+       ============================================================ -->
+  <canvas id="aurora-canvas"></canvas>
+  <canvas id="particles-canvas"></canvas>
+
+
+  <div class="app-wrapper">
+
+    <!-- ============================================================
+         CABECERA: UBICACIÓN Y FECHA/HORA
+         ============================================================ -->
+    <header class="header fade-in">
+      <div class="location-group">
+        <!-- Punto pulsante: verde = online, rojo = offline -->
+        <div class="signal-dot offline" id="signal-dot"></div>
+        <span class="location-label" id="location-name">Estación Principal</span>
+      </div>
+      <span class="date-label" id="current-date"></span>
+    </header>
+
+    <!-- ============================================================
+         BANNER DE ESTADO DE FIREBASE
+         Aparece y desaparece según el estado de la conexión
+         ============================================================ -->
+    <div class="firebase-banner" id="firebase-banner">
+      <span id="banner-icon">⚠️</span>
+      <span id="banner-msg">Conectando a Firebase…</span>
+    </div>
+
+    <!-- ============================================================
+         TARJETA HERO: TEMPERATURA PRINCIPAL
+         Número grande con orbe giratorio y barra de nivel
+         ============================================================ -->
+    <div class="hero-card fade-in">
+      <div class="hero-top">
+        <div>
+          <div class="hero-label">Temperatura ambiente</div>
+          <div class="hero-temp-group">
+            <span class="hero-temp-value" id="temp-value">—</span>
+            <span class="hero-temp-unit">°C</span>
+          </div>
+          <!-- Mínima / Máxima / Sensación térmica -->
+          <div class="hero-meta">
+            <div class="hero-meta-item">
+              <span class="hero-meta-val" id="temp-min">—</span>
+              <span class="hero-meta-lbl">Mín.</span>
+            </div>
+            <div class="hero-meta-item">
+              <span class="hero-meta-val" id="temp-max">—</span>
+              <span class="hero-meta-lbl">Máx.</span>
+            </div>
+            <div class="hero-meta-item">
+              <span class="hero-meta-val" id="temp-feels">—</span>
+              <span class="hero-meta-lbl">Sensación</span>
+            </div>
+          </div>
+        </div>
+        <!-- Orbe cónico giratorio -->
+        <div class="temp-orb" aria-hidden="true">
+          <div class="temp-orb-icon">🌡️</div>
+        </div>
+      </div>
+      <!-- Barra de nivel de temperatura -->
+      <div class="hero-bar-track">
+        <div class="hero-bar-fill" id="hero-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         GRID DE 4 TARJETAS DE SENSORES
+         Humedad / Contaminación PM2.5 / CO₂ / Presión
+         ============================================================ -->
+    <div class="cards-grid fade-in">
+
+      <!-- TARJETA 1: HUMEDAD RELATIVA -->
+      <div class="sensor-card card-humidity">
+        <div class="card-icon-row">
+          <span class="card-icon">💧</span>
+          <span class="card-badge badge-ok" id="badge-humidity">—</span>
+        </div>
+        <div class="card-value">
+          <span id="humidity-value">—</span><span class="card-unit">%</span>
+        </div>
+        <div class="card-name">Humedad relativa</div>
+        <div class="card-gauge">
+          <div class="card-gauge-fill gauge-cyan" id="gauge-humidity" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- TARJETA 2: CONTAMINACIÓN PM2.5 -->
+      <div class="sensor-card card-pollution">
+        <div class="card-icon-row">
+          <span class="card-icon">🏭</span>
+          <span class="card-badge badge-warn" id="badge-pollution">—</span>
+        </div>
+        <div class="card-value">
+          <span id="pollution-value">—</span><span class="card-unit">µg</span>
+        </div>
+        <div class="card-name">Contaminación PM2.5</div>
+        <div class="card-gauge">
+          <div class="card-gauge-fill gauge-coral" id="gauge-pollution" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- TARJETA 3: DIÓXIDO DE CARBONO -->
+      <div class="sensor-card card-co2">
+        <div class="card-icon-row">
+          <span class="card-icon">🌿</span>
+          <span class="card-badge badge-ok" id="badge-co2">—</span>
+        </div>
+        <div class="card-value">
+          <span id="co2-value">—</span><span class="card-unit">ppm</span>
+        </div>
+        <div class="card-name">Dióxido de Carbono</div>
+        <div class="card-gauge">
+          <div class="card-gauge-fill gauge-mint" id="gauge-co2" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- TARJETA 4: PRESIÓN ATMOSFÉRICA -->
+      <div class="sensor-card card-pressure">
+        <div class="card-icon-row">
+          <span class="card-icon">🔵</span>
+          <span class="card-badge badge-info" id="badge-pressure">—</span>
+        </div>
+        <div class="card-value">
+          <span id="pressure-value">—</span><span class="card-unit">hPa</span>
+        </div>
+        <div class="card-name">Presión atmosférica</div>
+        <div class="card-gauge">
+          <div class="card-gauge-fill gauge-amber" id="gauge-pressure" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- TARJETA 5: INTENSIDAD LUMINOSA -->
+      <div class="sensor-card card-luz">
+        <div class="card-icon-row">
+          <span class="card-icon">💡</span>
+          <span class="card-badge badge-ok" id="badge-luz">—</span>
+        </div>
+        <div class="card-value">
+          <span id="luz-value">—</span><span class="card-unit">lux</span>
+        </div>
+        <div class="card-name">Intensidad luminosa</div>
+        <div class="card-gauge">
+          <div class="card-gauge-fill gauge-gold" id="gauge-luz" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- TARJETA 6: AGUA DISPONIBLE -->
+      <div class="sensor-card card-agua">
+        <div class="card-icon-row">
+          <span class="card-icon">🪣</span>
+          <span class="card-badge badge-ok" id="badge-agua">—</span>
+        </div>
+        <div class="card-value">
+          <span id="agua-value">—</span><span class="card-unit">L</span>
+        </div>
+        <div class="card-name">Agua disponible</div>
+        <div class="card-gauge">
+          <div class="card-gauge-fill gauge-blue" id="gauge-agua" style="width:0%"></div>
+        </div>
+      </div>
+
+    </div><!-- fin .cards-grid -->
+
+    <!-- ============================================================
+         BARRA AQI: ÍNDICE DE CALIDAD DEL AIRE
+         Gradiente de color con puntero deslizante
+         ============================================================ -->
+    <div class="aqi-card fade-in">
+      <div class="aqi-title-row">
+        <span class="aqi-title">Índice de Calidad del Aire</span>
+        <span class="aqi-score"><span id="aqi-value">—</span> AQI</span>
+      </div>
+      <div class="aqi-bar-wrapper">
+        <div class="aqi-gradient-bar">
+          <div class="aqi-pointer" id="aqi-pointer" style="left:2%"></div>
+        </div>
+        <div class="aqi-labels">
+          <span class="aqi-lbl">Bueno</span>
+          <span class="aqi-lbl">Moderado</span>
+          <span class="aqi-lbl">Dañino</span>
+          <span class="aqi-lbl">Peligroso</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         FILA INFERIOR: ÚLTIMA LECTURA Y ESTADO DE SENSORES
+         ============================================================ -->
+    <div class="bottom-row fade-in">
+
+      <!-- ÚLTIMA LECTURA RECIBIDA -->
+      <div class="info-card">
+        <div class="info-card-label">Última lectura</div>
+        <div class="info-card-value" id="last-update">—</div>
+        <div class="info-card-sub" id="update-status">Esperando datos del ESP32…</div>
+      </div>
+
+      <!-- ESTADO DE SENSORES CON LEDs -->
+      <div class="info-card">
+        <div class="info-card-label">Sensores</div>
+        <div class="sensors-status">
+          <div class="sensor-row">
+            <span class="sensor-name-s">Temperatura</span>
+            <span class="sensor-led offline" id="led-temp"></span>
+          </div>
+          <div class="sensor-row">
+            <span class="sensor-name-s">Humedad</span>
+            <span class="sensor-led offline" id="led-humidity"></span>
+          </div>
+          <div class="sensor-row">
+            <span class="sensor-name-s">Contaminación</span>
+            <span class="sensor-led offline" id="led-pollution"></span>
+          </div>
+          <div class="sensor-row">
+            <span class="sensor-name-s">CO₂</span>
+            <span class="sensor-led offline" id="led-co2"></span>
+          </div>
+          <div class="sensor-row">
+            <span class="sensor-name-s">Luz</span>
+            <span class="sensor-led offline" id="led-luz"></span>
+          </div>
+          <div class="sensor-row">
+            <span class="sensor-name-s">Agua</span>
+            <span class="sensor-led offline" id="led-agua"></span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin .bottom-row -->
+
+    <!-- ============================================================
+         HISTORIAL RECIENTE Y EXPORTACIÓN A EXCEL
+         Tabla con las últimas 15 lecturas guardadas en Firebase.
+         El botón exporta TODO el historial (no solo lo visible)
+         a un archivo .xlsx con el mismo formato de la plantilla
+         original del proyecto.
+         ============================================================ -->
+    <div class="historial-card fade-in">
+      <div class="historial-header">
+        <span class="historial-title">Historial reciente</span>
+        <button class="btn-exportar" id="btn-exportar">⬇️ Exportar a Excel</button>
+      </div>
+      <div class="historial-scroll">
+        <table class="historial-tabla">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Temp. (°C)</th>
+              <th>Humedad (%)</th>
+              <th>CO2 (ppm)</th>
+              <th>Luz (lux)</th>
+              <th>Agua (L)</th>
+            </tr>
+          </thead>
+          <tbody id="historial-tbody">
+            <tr><td colspan="7" class="historial-vacio">Esperando datos del ESP32…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PIE DE PÁGINA -->
+    <div class="footer-note fade-in">
+      Monitor Ambiental · Datos enviados desde ESP32 cada 30 minutos
+    </div>
+
+  </div><!-- fin .app-wrapper -->
+
+
+  <!-- ============================================================
+       LIBRERÍA EXTERNA: ExcelJS
+       Genera el archivo .xlsx con colores y filtros directamente
+       en el navegador (para el botón "Exportar a Excel"), sin
+       necesitar un servidor. Cargada desde jsDelivr (CDN público).
+       ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+
+  <!-- ============================================================
+       JAVASCRIPT — ORDEN DE CARGA IMPORTANTE:
+       1. fondo.js    → Aurora y partículas (no depende de nada)
+       2. ui.js       → Lógica de interfaz y window.actualizarSensores()
+       3. firebase.js → Conexión a Firebase (depende de ui.js)
+       4. exportar.js → Botón de exportar a Excel (depende de firebase.js)
+       ============================================================ -->
+  <script src="js/fondo.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/exportar.js"></script>
+
+</body>
+</html>
